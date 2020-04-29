@@ -1,3 +1,3 @@
-# consul-cluster-deploy Setup for Docker Swarm Environment
+# consul-cluster-deploy
 
-Consul Cluster Setup with Git2Consul
+Setup for Docker Swarm Environment with Git2Consul
