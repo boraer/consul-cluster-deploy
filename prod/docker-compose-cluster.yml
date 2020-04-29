@@ -1,0 +1,98 @@
+version: '3.3'
+
+networks:
+  default_net:
+    external: true
+services:
+  # Deploy the consul server instances
+  consul-cluster-server:
+    image: consul:latest
+    networks:
+      default_net:
+        aliases:
+          - consul.server
+    environment:
+        - CONSUL_BIND_INTERFACE=eth0
+     # Start the consul server with the given configuration
+    command: agent -ui -server -client 0.0.0.0  -bootstrap-expect=3 -data-dir=/consul/data -retry-join "consul.server"
+    # Expose port 8500 so we can access the UI and allow connections across datacenters.
+    ports:
+      - target: 8500
+        published: 8500
+        mode: host
+    volumes:
+      - /var/opt:/consul/config
+      - /var/opt/:/consul/data
+    # Deploy the consul server on all servers which are managers.
+    # Use DNS Round Robin instead VIP for discovery. This ensures we get all running
+    # consul server instances when querying consul.server
+    deploy:
+      mode: global
+      endpoint_mode: dnsrr
+      update_config:
+        parallelism: 1
+        failure_action: rollback
+        delay: 30s
+      restart_policy:
+        condition: any
+        delay: 5s
+        window: 120s
+      placement:
+        constraints:
+          - node.role == manager
+
+  consul-cluster-agent:
+    image: consul:latest
+    networks:
+      default_net:
+        aliases:
+          - consul.server
+    environment:
+        - CONSUL_BIND_INTERFACE=eth0
+     # Start the consul agent with the given configuration          
+    command: agent  -client 0.0.0.0  -data-dir=/consul/data  -retry-join "consul.server"
+    ports:
+      - target: 8500
+        published: 8500
+        mode: host
+    # Mount the configuration and data volumes to the container.
+    volumes:
+      - /var/opt:/consul/config
+      - /var/opt:/consul/data
+    # Deploy the consul agent on all servers which are workers.
+    # Use DNS Round Robin instead VIP for discovery.  
+    deploy:
+      mode: global
+      endpoint_mode: dnsrr
+      update_config:
+        parallelism: 1
+        failure_action: rollback
+        delay: 30s
+      restart_policy:
+        condition: any
+        delay: 5s
+        window: 120s
+      placement:
+        constraints:
+          - node.role == worker
+          
+  git2consul:
+    image: git2consul-dev:0.0.1
+    networks:
+      default_net:
+        aliases:
+          - consul.server
+    environment:
+        - CONSUL_ENDPOINT=10.184.33.232
+    deploy:
+      mode: replicated
+      replicas: 1
+      endpoint_mode: dnsrr
+      update_config:
+        parallelism: 1
+        failure_action: rollback
+        delay: 30s
+      restart_policy:
+        condition: any
+        delay: 5s
+        window: 120s

@@ -1,0 +1,21 @@
+{
+  "version": "1.0",
+  "repos" : [
+    {
+      "name" : "config",
+      "expand_keys": false,
+      "url" : "https://XXX_Your_Git_Server/consul-kv-store.git",
+	  "include_branch_name" : false,
+	  "source_root": "config",
+      "branches" : [
+        "dev"
+      ],
+      "hooks": [
+        {
+          "type" : "polling",
+          "interval" : "1"
+        }
+      ]
+    }
+  ]
+}
